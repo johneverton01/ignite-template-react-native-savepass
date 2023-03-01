@@ -7,6 +7,7 @@ import * as Yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
+import { Control, FieldValues } from 'react-hook-form/dist/types';
 
 import { Header } from '../../components/Header';
 import { Input } from '../../components/Form/Input';
@@ -45,9 +46,12 @@ export function RegisterLoginData() {
     formState: {
       errors
     }
-  } = useForm({
+  } = useForm<FormData>({
     resolver: yupResolver(schema)
   });
+
+  const formControll = control as unknown as Control<FieldValues, any>
+  const dataKey = '@savepass:logins';
 
   async function handleRegister(formData: FormData) {
     const newLoginData = {
@@ -55,10 +59,25 @@ export function RegisterLoginData() {
       ...formData
     }
 
-    const dataKey = '@savepass:logins';
-
-    // Save data on AsyncStorage and navigate to 'Home' screen
+    try {
+      const currentData = await loadData();
+      const data = [
+        ...currentData,
+        newLoginData
+      ]
+      await AsyncStorage.setItem(dataKey, JSON.stringify(data))
+      navigate('Home')
+    } catch (err) {
+      console.log(err);
+      Alert.alert('Não foi possível salvar');
+    }
   }
+
+  async function loadData() {
+    const data = await AsyncStorage.getItem(dataKey)
+    const formtedData = data ? JSON.parse(data) : [];
+    return formtedData
+  } 
 
   return (
     <KeyboardAvoidingView
@@ -73,11 +92,8 @@ export function RegisterLoginData() {
             testID="service-name-input"
             title="Nome do serviço"
             name="service_name"
-            error={
-              // Replace here with real content
-              'Has error ? show error message'
-            }
-            control={control}
+            error={errors.service_name && errors.service_name.message}
+            control={formControll}
             autoCapitalize="sentences"
             autoCorrect
           />
@@ -85,11 +101,8 @@ export function RegisterLoginData() {
             testID="email-input"
             title="E-mail ou usuário"
             name="email"
-            error={
-              // Replace here with real content
-              'Has error ? show error message'
-            }
-            control={control}
+            error={errors.email && errors.email.message}
+            control={formControll}
             autoCorrect={false}
             autoCapitalize="none"
             keyboardType="email-address"
@@ -98,11 +111,8 @@ export function RegisterLoginData() {
             testID="password-input"
             title="Senha"
             name="password"
-            error={
-              // Replace here with real content
-              'Has error ? show error message'
-            }
-            control={control}
+            error={errors.password && errors.password.message}
+            control={formControll}
             secureTextEntry
           />
 
